@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Finansiell att-göra</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Att-göra">
+  <meta name="theme-color" content="#111827">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'DM Sans',system-ui,sans-serif;background:#f3f4f6;min-height:100vh;}
+    #root{max-width:720px;margin:0 auto;min-height:100vh;background:#fafafa;}
+    .header{background:#111827;color:#fff;padding:24px 20px 20px;position:sticky;top:0;z-index:100;}
+    .header h1{font-family:'Instrument Serif',Georgia,serif;font-size:22px;font-weight:400;margin-bottom:4px;}
+    .header p{font-size:12px;color:#9ca3af;}
+    .stat-bar{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
+    .stat-btn{display:flex;align-items:center;gap:7px;padding:5px 14px;border-radius:8px;border:1px solid transparent;background:transparent;color:#fff;cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;transition:all .15s;}
+    .stat-btn.active{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);}
+    .stat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+    .stat-count{font-weight:700;font-size:14px;}
+    .overdue-badge{margin-left:auto;font-size:11px;color:#fca5a5;display:flex;align-items:center;}
+    .body{padding:18px 14px 40px;}
+    .cat-pills{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:18px;scrollbar-width:none;}
+    .cat-pills::-webkit-scrollbar{display:none;}
+    .pill{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;border:none;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .15s;}
+    .section{margin-bottom:26px;}
+    .section-header{display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:10px;border:1px solid;margin-bottom:10px;}
+    .section-emoji{font-size:15px;}
+    .section-label{font-weight:700;font-size:13px;letter-spacing:.04em;flex:1;}
+    .section-badge{font-size:12px;font-weight:700;padding:2px 10px;border-radius:20px;}
+    .tasks{display:flex;flex-direction:column;gap:8px;}
+    .card{background:#fff;border:1px solid #e5e7eb;border-left:4px solid #e5e7eb;border-radius:10px;padding:13px 15px;transition:all .2s;}
+    .card.done{opacity:.6;background:#f9fafb;}
+    .card.overdue{border-color:#fca5a5;}
+    .card-row{display:flex;align-items:flex-start;gap:10px;}
+    .status-dot{width:20px;height:20px;border-radius:50%;border:none;cursor:pointer;flex-shrink:0;margin-top:2px;transition:all .15s;box-shadow:0 0 0 3px #f3f4f6;}
+    .status-dot:hover{transform:scale(1.15);}
+    .card-body{flex:1;min-width:0;}
+    .card-title{font-family:'Instrument Serif',Georgia,serif;font-size:15px;font-weight:600;color:#111827;line-height:1.4;}
+    .card-title.done{text-decoration:line-through;color:#9ca3af;}
+    .card-meta{display:flex;align-items:center;gap:8px;margin-top:7px;flex-wrap:wrap;}
+    .status-badge{font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px;cursor:pointer;white-space:nowrap;}
+    .priority-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap;}
+    .date-badge{font-size:11px;color:#6b7280;}
+    .date-badge.overdue{color:#ef4444;font-weight:600;}
+    .recur-badge{font-size:11px;color:#9ca3af;}
+    .expand-btn{font-size:11px;color:#6b7280;background:none;border:none;cursor:pointer;padding:0;font-family:inherit;}
+    .desc{margin-top:10px;font-size:13px;color:#4b5563;line-height:1.65;padding:10px 12px;background:#f9fafb;border-radius:8px;border-left:3px solid #e5e7eb;}
+    .del-btn{background:none;border:none;cursor:pointer;color:#d1d5db;font-size:18px;padding:0 2px;flex-shrink:0;line-height:1;}
+    .del-btn:hover{color:#ef4444;}
+    .empty{text-align:center;padding:60px 20px;color:#9ca3af;}
+    .empty-icon{font-size:36px;margin-bottom:12px;}
+    .empty-text{font-family:'Instrument Serif',Georgia,serif;font-size:16px;}
+    .fab{position:fixed;bottom:28px;right:20px;width:52px;height:52px;border-radius:50%;background:#111827;color:#fff;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;z-index:200;transition:transform .15s;}
+    .fab:hover{transform:scale(1.08);}
+    .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:center;justify-content:center;}
+    .overlay.show{display:flex;}
+    .modal{background:#fff;border-radius:18px;padding:26px;width:min(460px,92vw);max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+    .modal h2{font-family:'Instrument Serif',Georgia,serif;font-size:20px;font-weight:400;margin-bottom:20px;}
+    .form-group{margin-bottom:14px;}
+    .form-group label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px;}
+    .form-group input,.form-group select,.form-group textarea{width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;font-family:inherit;outline:none;transition:border .15s;}
+    .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#6b7280;}
+    .form-group textarea{min-height:80px;resize:vertical;}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .btn-row{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+    .btn{padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .15s;}
+    .btn-cancel{background:#fff;border:1px solid #d1d5db;color:#374151;}
+    .btn-submit{background:#111827;border:none;color:#fff;}
+    .setup{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;}
+    .setup-card{background:#fff;border-radius:18px;padding:32px;max-width:500px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,.1);}
+    .setup-card h2{font-family:'Instrument Serif',Georgia,serif;font-size:24px;margin-bottom:10px;}
+    .setup-card p{font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:8px;}
+    .setup-card code{background:#f3f4f6;padding:2px 6px;border-radius:4px;font-size:13px;color:#111;}
+    .loader{display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:14px;color:#9ca3af;}
+    @media(max-width:480px){.header{padding:20px 16px 16px;}.body{padding:14px 12px 60px;}}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  FIREBASE-KONFIGURATION  –  Fyll i dina värden här
+//  Hämtas från: Firebase Console → Projektinst. → Din app
+// ═══════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyAQ8FHsrgX6ieLE4J7jH6iVoCbmugiaa6o",
+  authDomain:        "finansiell-tasklista-50f19.firebaseapp.com",
+  projectId:         "finansiell-tasklista-50f19",
+  storageBucket:     "finansiell-tasklista-50f19.firebasestorage.app",
+  messagingSenderId: "862321575580",
+  appId:             "1:862321575580:web:1398333cccd44ee408cf59"
+};
+// ═══════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════
+//  UPPGIFTER  –  Uppdateras av Claude vid behov
+// ═══════════════════════════════════════════════════
+const INITIAL_TASKS = [
+  // AKUT
+  {id:"a1",title:"Registrera David som anställd hos Skatteverket",desc:"Formell anmälan att David är anställd i AB:et. Krävs för A-skatt och AGI-rapportering.",cat:"Akut",prio:"hög",due:"2026-06-01",status:"todo"},
+  {id:"a2",title:"Registrera AB som arbetsgivare",desc:"Arbetsgivarregistrering hos Skatteverket. Krävs för att kunna betala lön och arbetsgivaravgifter.",cat:"Akut",prio:"hög",due:"2026-06-01",status:"todo"},
+  {id:"a3",title:"Teckna olycksfallsförsäkring för David via AB",desc:"~125 SEK/mån. Avdragsgill kostnad i AB. Kritisk för målare. Täcker olyckor och bestående invaliditet.",cat:"Akut",prio:"hög",due:"2026-06-01",status:"todo"},
+  {id:"a4",title:"Sätt upp AGI-rapportering månadsvis",desc:"Arbetsgivardeklaration via Bokio. Ska betalas 12e varje månad. Inkluderar arbetsgivaravgifter (31,42% av bruttolön).",cat:"Akut",prio:"hög",due:"2026-06-12",status:"todo"},
+  // KÖRKORT
+  {id:"k1",title:"Teoriprov",desc:"Lycka till! Om underkänt: 500 SEK för omtentamen.",cat:"Körkort",prio:"hög",due:"2026-05-25",status:"todo"},
+  {id:"k2",title:"Uppkörning",desc:"Om underkänt: 1 800 SEK för nytt prov.",cat:"Körkort",prio:"hög",due:"2026-06-16",status:"todo"},
+  // KORT SIKT
+  {id:"b1",title:"Sätt upp lönerutin i AB",desc:"Varje månad när faktura betalas (~15e): (Intäkt − 5 000) = lönekostnad. Pension (2 000) + övriga (3 000) dras direkt. Lön betalas 25e.",cat:"Kort sikt",prio:"hög",due:"2026-06-15",status:"todo"},
+  {id:"b2",title:"Omförhandla bostadslånet till rörlig ränta",desc:"Nuvarande ränta 2,59% löper ut sista juli. Rörlig ränta rekommenderas — flexibilitet om ni säljer aug 2027. Förhandla aktivt med banken.",cat:"Kort sikt",prio:"hög",due:"2026-07-31",status:"todo"},
+  {id:"b3",title:"Registrera för F-skatt och sätt upp betalning",desc:"Betala in preliminär bolagsskatt löpande. Förväntad skatt ~2 700 SEK/år. Undviker kvarskatt och ränta.",cat:"Kort sikt",prio:"medel",due:null,status:"todo"},
+  {id:"b4",title:"Överväg sjukförsäkring för David via AB",desc:"~300 SEK/mån. Avdragsgill. Ger skydd vid längre sjukskrivning (efter 90 dagar). Kompletterar Försäkringskassans grundskydd.",cat:"Kort sikt",prio:"medel",due:null,status:"todo"},
+  {id:"b5",title:"Uppdatera budget i spreadsheet",desc:"Reviderade siffror: Livsmedel 7 700, Restaurang 4 500, Transport 2 800, Shopping 3 000, Övrigt/Fritid/Vård 2 000. Total vardagskonto: 20 000 SEK.",cat:"Kort sikt",prio:"låg",due:null,status:"todo"},
+  // LÖPANDE
+  {id:"l1",title:"AB: Ta ut lön den 25e",desc:"(Månadens intäkt − 5 000) som lönekostnad. Om intäkt < 5 000: ingen lön den månaden.",cat:"Löpande",prio:"hög",due:null,status:"todo",recur:true},
+  {id:"l2",title:"AB: Betala arbetsgivaravgifter den 12e",desc:"31,42% av Davids bruttolön. Rapporteras via AGI i Bokio.",cat:"Löpande",prio:"hög",due:null,status:"todo",recur:true},
+  {id:"l3",title:"Hushåll: Spara 65/35 från Davids lön",desc:"65% av Davids nettolön → Pension Avanza. 35% → Drömmar. Automatisk överföring den 25e.",cat:"Löpande",prio:"hög",due:null,status:"todo",recur:true},
+  {id:"l4",title:"Hushåll: Kolla saldo den 25e",desc:"Allt över 50 000 SEK på kontot → 65% pension (Avanza), 35% drömmar.",cat:"Löpande",prio:"hög",due:null,status:"todo",recur:true},
+  // LÄGENHETEN
+  {id:"lg1",title:"Beslut: Fortsätt hyra Lund eller sälja?",desc:"Ta beslut jun/jul 2027. Vid försäljning för 2 700 000: netto ~467 000 + skattekredit ~66 500. David får tillbaka ~33 000.",cat:"Lägenheten",prio:"medel",due:"2027-06-01",status:"todo"},
+  {id:"lg2",title:"Hitta sparkonto med bättre ränta för bostadspengarna",desc:"Vid försäljning: parkera inte ~500 000 på 1,3% (under inflation). Svenska sparkonton/räntefonder ger 2,5–3,5%.",cat:"Lägenheten",prio:"medel",due:null,status:"todo"},
+  // AB
+  {id:"ab1",title:"Årsslut Dec: Sätt av periodiseringsfond",desc:"Sätt undan 25% av AB:ets vinst. Förväntad vinst ~13 000 SEK → skattebesparning ~670 SEK. Görs i Bokio vid bokslut.",cat:"AB",prio:"medel",due:"2026-12-31",status:"todo"},
+  {id:"ab2",title:"Årsslut Dec: Stämma av F-skatt",desc:"Säkerställ att preliminär bolagsskatt är betald. Förväntad bolagsskatt ~2 700 SEK för helåret.",cat:"AB",prio:"medel",due:"2026-12-31",status:"todo"},
+  // ÖPPNA BESLUT
+  {id:"o1",title:"Beslut: Segelbåtsköp?",desc:"Om köp: drömmar-kontot används först (44 244 SEK), sedan Bospar Avanza. Total andel 50–70 000 SEK. Hör av dig → vi räknar om drömmar-scenariot.",cat:"Öppna beslut",prio:"medel",due:null,status:"todo"},
+  {id:"o2",title:"Planera höst/vinterresa 2026",desc:"Oktober/November är säkraste fönstret. Kort resa ~20 000 SEK möjlig.",cat:"Öppna beslut",prio:"låg",due:null,status:"todo"},
+  {id:"o3",title:"Lång vinterresa (2027/2028)",desc:"Realistiskt fönster: vinter 2027/2028. Drömmar-kontot ~70 000 SEK vid december 2027 (Scenario C, utan segelbåt).",cat:"Öppna beslut",prio:"låg",due:null,status:"todo"},
+  {id:"o4",title:"Livförsäkring — saknas idag",desc:"Med lån på 2,2 mkr bör ni överväga livförsäkring. Johannes har inkomstförsäkring via facket. David saknar skydd.",cat:"Öppna beslut",prio:"låg",due:null,status:"todo"}
+];
+
+const CATS = [
+  {id:"Akut",       emoji:"🔴", bg:"#fff1f2", border:"#fca5a5", head:"#991b1b", bbg:"#fee2e2", btext:"#b91c1c"},
+  {id:"Körkort",    emoji:"🚗", bg:"#faf5ff", border:"#c4b5fd", head:"#5b21b6", bbg:"#ede9fe", btext:"#6d28d9"},
+  {id:"Kort sikt",  emoji:"🟡", bg:"#fffbeb", border:"#fcd34d", head:"#78350f", bbg:"#fef3c7", btext:"#92400e"},
+  {id:"Löpande",    emoji:"🔵", bg:"#eff6ff", border:"#93c5fd", head:"#1e3a8a", bbg:"#dbeafe", btext:"#1d4ed8"},
+  {id:"Lägenheten", emoji:"🏠", bg:"#f0fdf4", border:"#86efac", head:"#14532d", bbg:"#dcfce7", btext:"#15803d"},
+  {id:"AB",         emoji:"🏢", bg:"#eef2ff", border:"#a5b4fc", head:"#312e81", bbg:"#e0e7ff", btext:"#4338ca"},
+  {id:"Öppna beslut",emoji:"📋",bg:"#f9fafb", border:"#d1d5db", head:"#374151", bbg:"#f3f4f6", btext:"#4b5563"}
+];
+
+const PRIO = {
+  hög:  {bg:"#fee2e2",text:"#b91c1c"},
+  medel:{bg:"#fef3c7",text:"#92400e"},
+  låg:  {bg:"#f3f4f6",text:"#6b7280"}
+};
+
+const STATUS = {
+  todo:     {label:"Att göra", bg:"#f3f4f6", text:"#374151", dot:"#9ca3af"},
+  pågående: {label:"Pågående", bg:"#dbeafe", text:"#1d4ed8", dot:"#3b82f6"},
+  avklarat: {label:"Avklarat", bg:"#dcfce7", text:"#15803d", dot:"#22c55e"}
+};
+
+const NEXT_STATUS = {todo:"pågående", pågående:"avklarat", avklarat:"todo"};
+
+// ─── State ───────────────────────────────────────
+let tasks = [];
+let statusFilter = "all";
+let catFilter = "all";
+let expanded = new Set();
+let db = null;
+const CONFIGURED = FIREBASE_CONFIG.apiKey !== "PASTE_apiKey";
+
+// ─── Firebase ────────────────────────────────────
+async function loadTasks() {
+  try {
+    const doc = await db.collection("tasks").doc("main").get();
+    if (doc.exists) {
+      const stored = doc.data().items || [];
+      const userTasks = stored.filter(t => t.userCreated);
+      const merged = INITIAL_TASKS.map(t => {
+        const s = stored.find(x => x.id === t.id);
+        return s ? {...t, status: s.status} : t;
+      });
+      tasks = [...merged, ...userTasks];
+    } else {
+      tasks = [...INITIAL_TASKS];
+      await saveTasks();
+    }
+  } catch(e) {
+    tasks = [...INITIAL_TASKS];
+    console.error(e);
+  }
+}
+
+async function saveTasks() {
+  try {
+    await db.collection("tasks").doc("main").set({items: tasks});
+  } catch(e) { console.error(e); }
+}
+
+// ─── Task ops ────────────────────────────────────
+async function updateStatus(id) {
+  tasks = tasks.map(t => t.id === id ? {...t, status: NEXT_STATUS[t.status]} : t);
+  render();
+  await saveTasks();
+}
+
+async function addTask(task) {
+  tasks = [...tasks, {...task, id:"u"+Date.now(), status:"todo", userCreated:true}];
+  render();
+  await saveTasks();
+}
+
+async function deleteTask(id) {
+  tasks = tasks.filter(t => t.id !== id);
+  render();
+  await saveTasks();
+}
+
+function toggleExpand(id) {
+  expanded.has(id) ? expanded.delete(id) : expanded.add(id);
+  render();
+}
+
+// ─── Helpers ─────────────────────────────────────
+function fmtDate(d) {
+  if (!d) return null;
+  const [y,m,day] = d.split("-");
+  const mn = ["jan","feb","mar","apr","maj","jun","jul","aug","sep","okt","nov","dec"];
+  return `${parseInt(day)} ${mn[parseInt(m)-1]} ${y}`;
+}
+
+function isOverdue(due, status) {
+  return due && status !== "avklarat" && new Date(due) < new Date();
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// ─── Render ──────────────────────────────────────
+function render() {
+  const app = document.getElementById("root");
+
+  if (!CONFIGURED) {
+    app.innerHTML = `<div class="setup"><div class="setup-card">
+      <h2>Konfiguration saknas</h2>
+      <p>Öppna <code>index.html</code> i en textredigerare och fyll i din Firebase-konfiguration under <code>FIREBASE_CONFIG</code>.</p>
+      <p style="margin-top:12px">Se instruktionerna från Claude för hur du hittar konfigurationen.</p>
+    </div></div>`;
+    return;
+  }
+
+  const counts = {all:tasks.length, todo:0, pågående:0, avklarat:0};
+  tasks.forEach(t => counts[t.status]++);
+  const overdueCount = tasks.filter(t => isOverdue(t.due, t.status)).length;
+
+  const filtered = tasks.filter(t =>
+    (statusFilter === "all" || t.status === statusFilter) &&
+    (catFilter === "all" || t.cat === catFilter)
+  );
+
+  const headerHTML = `
+    <div class="header">
+      <h1>Finansiell att-göra</h1>
+      <p>Johannes &amp; David · Uppdateras löpande</p>
+      <div class="stat-bar">
+        ${[
+          {key:"all",    label:"Alla",      color:"#fff"},
+          {key:"todo",   label:"Att göra",  color:"#fbbf24"},
+          {key:"pågående",label:"Pågående", color:"#60a5fa"},
+          {key:"avklarat",label:"Avklarat", color:"#34d399"}
+        ].map(s => `
+          <button class="stat-btn ${statusFilter===s.key?"active":""}" onclick="setStatusFilter('${s.key}')">
+            <span class="stat-dot" style="background:${s.color}"></span>
+            ${esc(s.label)} <span class="stat-count">${counts[s.key]}</span>
+          </button>`).join("")}
+        ${overdueCount > 0 ? `<span class="overdue-badge">⚠️ ${overdueCount} försenade</span>` : ""}
+      </div>
+    </div>`;
+
+  const allCatIds = [...new Set(tasks.map(t => t.cat))];
+  const pillsHTML = `<div class="cat-pills">
+    <button class="pill" style="background:${catFilter==="all"?"#111827":"#e5e7eb"};color:${catFilter==="all"?"#fff":"#374151"}" onclick="setCatFilter('all')">Alla</button>
+    ${CATS.filter(c => allCatIds.includes(c.id)).map(c => {
+      const active = catFilter === c.id;
+      return `<button class="pill" style="background:${active?c.border:c.bg};color:${active?c.head:"#374151"}" onclick="setCatFilter('${esc(c.id)}')">
+        ${c.emoji} ${esc(c.id)}
+        <span style="margin-left:5px;font-size:10px;font-weight:700">${tasks.filter(t=>t.cat===c.id&&(statusFilter==="all"||t.status===statusFilter)).length}</span>
+      </button>`;
+    }).join("")}
+  </div>`;
+
+  const sectionsHTML = CATS.filter(c => catFilter === "all" || c.id === catFilter).map(c => {
+    const catTasks = filtered.filter(t => t.cat === c.id);
+    if (!catTasks.length) return "";
+    const remaining = catTasks.filter(t => t.status !== "avklarat").length;
+    const cardsHTML = catTasks.map(t => {
+      const s = STATUS[t.status];
+      const p = PRIO[t.prio];
+      const over = isOverdue(t.due, t.status);
+      const exp = expanded.has(t.id);
+      return `<div class="card ${t.status==="avklarat"?"done":""} ${over?"overdue":""}" style="border-left-color:${over?"#ef4444":c.border}">
+        <div class="card-row">
+          <button class="status-dot" style="background:${s.dot};box-shadow:0 0 0 3px ${s.bg}" onclick="updateStatus('${esc(t.id)}')" title="Ändra status"></button>
+          <div class="card-body">
+            <div class="card-title ${t.status==="avklarat"?"done":""}">${esc(t.title)}${t.recur?` <span style="font-size:11px;color:#9ca3af">↻</span>`:""}</div>
+            <div class="card-meta">
+              <span class="status-badge" style="background:${s.bg};color:${s.text}" onclick="updateStatus('${esc(t.id)}')">${s.label}</span>
+              <span class="priority-badge" style="background:${p.bg};color:${p.text}">${t.prio.toUpperCase()}</span>
+              ${t.due ? `<span class="date-badge ${over?"overdue":""}">${over?"⚠️ ":"📅 "}${fmtDate(t.due)}</span>` : ""}
+              ${t.desc ? `<button class="expand-btn" onclick="toggleExpand('${esc(t.id)}')">${exp?"▲ Dölj":"▼ Mer"}</button>` : ""}
+            </div>
+            ${exp && t.desc ? `<div class="desc" style="border-left-color:${c.border}">${esc(t.desc)}</div>` : ""}
+          </div>
+          ${t.userCreated ? `<button class="del-btn" onclick="deleteTask('${esc(t.id)}')" title="Ta bort">×</button>` : ""}
+        </div>
+      </div>`;
+    }).join("");
+    return `<div class="section">
+      <div class="section-header" style="background:${c.bg};border-color:${c.border}">
+        <span class="section-emoji">${c.emoji}</span>
+        <span class="section-label" style="color:${c.head}">${esc(c.id.toUpperCase())}</span>
+        <span class="section-badge" style="background:${c.bbg};color:${c.btext}">${remaining} kvar</span>
+      </div>
+      <div class="tasks">${cardsHTML}</div>
+    </div>`;
+  }).join("");
+
+  const emptyHTML = filtered.length === 0 ? `<div class="empty"><div class="empty-icon">✓</div><p class="empty-text">Inga uppgifter matchar.</p></div>` : "";
+
+  app.innerHTML = `
+    ${headerHTML}
+    <div class="body">
+      ${pillsHTML}
+      ${sectionsHTML}
+      ${emptyHTML}
+    </div>
+    <button class="fab" onclick="openModal()" title="Lägg till uppgift">+</button>
+    <div class="overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <h2>Lägg till uppgift</h2>
+        <div class="form-group"><label>Titel *</label><input id="f-title" placeholder="Vad ska göras?"></div>
+        <div class="form-group"><label>Beskrivning</label><textarea id="f-desc" placeholder="Detaljer..."></textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label>Kategori</label><select id="f-cat">
+            ${CATS.map(c=>`<option value="${esc(c.id)}">${c.emoji} ${esc(c.id)}</option>`).join("")}
+          </select></div>
+          <div class="form-group"><label>Prioritet</label><select id="f-prio">
+            <option value="hög">🔴 Hög</option>
+            <option value="medel" selected>🟡 Medel</option>
+            <option value="låg">⚪ Låg</option>
+          </select></div>
+        </div>
+        <div class="form-group"><label>Deadline (valfritt)</label><input type="date" id="f-due"></div>
+        <div class="btn-row">
+          <button class="btn btn-cancel" onclick="closeModal()">Avbryt</button>
+          <button class="btn btn-submit" onclick="submitTask()">Lägg till</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ─── Modal & filters ──────────────────────────────
+function openModal()  { document.getElementById("modal-overlay").classList.add("show"); }
+function closeModal() { document.getElementById("modal-overlay").classList.remove("show"); }
+
+function submitTask() {
+  const title = document.getElementById("f-title").value.trim();
+  if (!title) return;
+  addTask({
+    title,
+    desc: document.getElementById("f-desc").value.trim(),
+    cat:  document.getElementById("f-cat").value,
+    prio: document.getElementById("f-prio").value,
+    due:  document.getElementById("f-due").value || null
+  });
+  closeModal();
+}
+
+function setStatusFilter(f) { statusFilter = f; render(); }
+function setCatFilter(f)    { catFilter    = f; render(); }
+
+// ─── Init ─────────────────────────────────────────
+async function init() {
+  document.getElementById("root").innerHTML = '<div class="loader">Laddar...</div>';
+  if (!CONFIGURED) { render(); return; }
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.firestore();
+    await loadTasks();
+  } catch(e) {
+    console.error(e);
+    tasks = [...INITIAL_TASKS];
+  }
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
